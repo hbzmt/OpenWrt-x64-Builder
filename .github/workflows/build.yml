@@ -46,11 +46,6 @@ jobs:
 
       - name: Get ImageBuilder Filename
         run: |
-          VERSION="${{ github.event.inputs.firmware_version }}"
-
-          TARGET_PATH="https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/"
-          echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
-
           echo "Fetching directory..."
 
           HTML=$(curl -sL "$TARGET_PATH")
