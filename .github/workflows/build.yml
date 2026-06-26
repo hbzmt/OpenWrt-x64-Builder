@@ -1,1 +1,31 @@
+name: OpenWrt x86-64 Builder
 
+on:
+  workflow_dispatch:
+    inputs:
+      firmware_version:
+        description: "OpenWrt Version (e.g. 25.12.0 / 24.10.3 / SNAPSHOT)"
+        required: true
+        default: "25.12.0"
+
+      rootfs_size:
+        description: "RootFS Size (MB)"
+        required: true
+        default: "2048"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Print Build Config
+        run: |
+          echo "===================================="
+          echo "OpenWrt x86-64 Build Config"
+          echo "===================================="
+          echo "Firmware Version : ${{ github.event.inputs.firmware_version }}"
+          echo "RootFS Size      : ${{ github.event.inputs.rootfs_size }} MB"
+          echo "===================================="
