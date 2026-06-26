@@ -37,31 +37,23 @@ jobs:
           echo "Firmware version: $VERSION"
 
           if [ "$VERSION" = "SNAPSHOT" ]; then
-            TARGET_URL="https://downloads.openwrt.org/snapshots/targets/x86/64/"
+            TARGET_PATH="https://downloads.openwrt.org/snapshots/targets/x86/64/"
           else
-            TARGET_URL="https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/"
-          fi
-
-          echo "TARGET_URL=$TARGET_URL"
-          echo "TARGET_URL=$TARGET_URL" >> $GITHUB_ENV
-
-      - name: Get ImageBuilder Filename
-        run: |
-          VERSION="${{ github.event.inputs.firmware_version }}"
-
-          BASE_URL="https://downloads.openwrt.org"
-
-          if [ "$VERSION" = "SNAPSHOT" ]; then
-            TARGET_PATH="$BASE_URL/snapshots/targets/x86/64/"
-          else
-            TARGET_PATH="$BASE_URL/releases/$VERSION/targets/x86/64/"
+            TARGET_PATH="https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/"
           fi
 
           echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
 
-          echo "Fetching directory listing..."
+      - name: Get ImageBuilder Filename
+        run: |
+          HTML=$(curl -sL "$TARGET_PATH")
 
-          FILE=$(curl -s $TARGET_PATH | grep -oP 'openwrt-imagebuilder.*x86-64.*\.tar\.xz' | head -n 1)
+          FILE=$(echo "$HTML" | grep -oE 'openwrt-imagebuilder-[^"]*x86-64[^"]*\.tar\.xz' | head -n 1)
+
+          if [ -z "$FILE" ]; then
+            echo "ERROR: ImageBuilder not found in directory!"
+            exit 1
+          fi
 
           echo "ImageBuilder file: $FILE"
           echo "FILE=$FILE" >> $GITHUB_ENV
@@ -74,3 +66,11 @@ jobs:
           cd openwrt
 
           wget "$TARGET_PATH$FILE" -O imagebuilder.tar.xz
+
+      - name: Extract ImageBuilder
+        run: |
+          cd openwrt
+          tar -xf imagebuilder.tar.xz
+
+          echo "Extract done"
+          ls -lah
