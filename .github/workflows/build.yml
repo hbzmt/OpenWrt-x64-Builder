@@ -94,3 +94,18 @@ jobs:
 
           echo "Build finished"
           ls -lh bin/targets/x86/64/
+
+      - name: Upload Firmware Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openwrt-x86-64-firmware
+          path: openwrt/bin/targets/x86/64/*
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: openwrt-${{ github.event.inputs.firmware_version }}
+          name: OpenWrt x86-64 ${{ github.event.inputs.firmware_version }}
+          files: openwrt/bin/targets/x86/64/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
