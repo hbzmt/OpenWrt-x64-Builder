@@ -48,15 +48,33 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
 
-          TARGET_PATH="https://downloads.openwrt.org/releases/${VERSION}/targets/x86/64/"
+          BASE="https://downloads.openwrt.org"
 
-          FILE="openwrt-imagebuilder-${VERSION}-x86-64.Linux-x86_64.tar.xz"
+          if [ "$VERSION" = "SNAPSHOT" ]; then
+            TARGET_PATH="$BASE/snapshots/targets/x86/64/"
+          else
+            TARGET_PATH="$BASE/releases/$VERSION/targets/x86/64/"
+          fi
 
           echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
+
+          echo "Fetching real ImageBuilder link..."
+
+          HTML=$(curl -sL "$TARGET_PATH")
+
+          FILE=$(echo "$HTML" | grep -oE 'href="[^"]*imagebuilder[^"]*x86-64[^"]*\.tar\.xz"' \
+                | head -n 1 \
+                | sed 's/href="//' \
+                | sed 's/"//')
+
+          if [ -z "$FILE" ]; then
+            echo "ERROR: ImageBuilder not found in directory"
+            exit 1
+          fi
+
           echo "FILE=$FILE" >> $GITHUB_ENV
 
-          echo "Target path: $TARGET_PATH"
-          echo "ImageBuilder file: $FILE"
+          echo "ImageBuilder found: $FILE"
 
       - name: Download ImageBuilder
         run: |
