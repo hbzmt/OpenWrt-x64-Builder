@@ -13,6 +13,10 @@ on:
         required: true
         default: "2048"
 
+# ⭐ 修复 release 403 必须加
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,8 +38,6 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
 
-          echo "Firmware version: $VERSION"
-
           if [ "$VERSION" = "SNAPSHOT" ]; then
             TARGET_PATH="https://downloads.openwrt.org/snapshots/targets/x86/64/"
           else
@@ -44,18 +46,22 @@ jobs:
 
           echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
 
+      # =========================
+      # 获取 ImageBuilder（稳定版）
+      # =========================
       - name: Get ImageBuilder Filename
         run: |
-          echo "Fetching directory..."
+          echo "Fetching ImageBuilder directory..."
 
           HTML=$(curl -sL "$TARGET_PATH")
 
           FILE=$(echo "$HTML" \
-            | grep -oE 'openwrt-imagebuilder-[0-9a-zA-Z\.\-]+-x86-64[^"]*\.tar\.zst' \
+            | grep -oE 'openwrt-imagebuilder-[^"]*x86-64[^"]*\.tar\.zst' \
             | head -n 1)
 
           if [ -z "$FILE" ]; then
-            echo "ERROR: ImageBuilder not found"
+            echo "ERROR: ImageBuilder not found in directory"
+            echo "$HTML" | head -n 50
             exit 1
           fi
 
@@ -77,7 +83,11 @@ jobs:
           tar --use-compress-program=unzstd -xf imagebuilder.tar.zst
 
           echo "Extract done"
-          ls
+          ls -lah
+
+      # =========================
+      # 构建固件
+      # =========================
       - name: Build OpenWrt Image
         run: |
           cd openwrt
@@ -93,19 +103,27 @@ jobs:
             PACKAGES=""
 
           echo "Build finished"
-          ls -lh bin/targets/x86/64/
 
+          echo "=== OUTPUT FILES ==="
+          find bin/targets/x86/64 -type f || true
+
+      # =========================
+      # 上传 Artifact（修复路径）
+      # =========================
       - name: Upload Firmware Artifact
         uses: actions/upload-artifact@v4
         with:
           name: openwrt-x86-64-firmware
-          path: openwrt/bin/targets/x86/64/*
+          path: openwrt/**/bin/targets/x86/64/*
 
+      # =========================
+      # 发布 Release
+      # =========================
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: openwrt-${{ github.event.inputs.firmware_version }}
           name: OpenWrt x86-64 ${{ github.event.inputs.firmware_version }}
-          files: openwrt/bin/targets/x86/64/*
+          files: openwrt/**/bin/targets/x86/64/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
