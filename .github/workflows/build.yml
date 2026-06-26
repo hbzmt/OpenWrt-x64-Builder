@@ -29,3 +29,18 @@ jobs:
           echo "Firmware Version : ${{ github.event.inputs.firmware_version }}"
           echo "RootFS Size      : ${{ github.event.inputs.rootfs_size }} MB"
           echo "===================================="
+      - name: Detect Download URL
+        id: url
+        run: |
+          VERSION="${{ github.event.inputs.firmware_version }}"
+
+          echo "Firmware version: $VERSION"
+
+          if [ "$VERSION" = "SNAPSHOT" ]; then
+            TARGET_URL="https://downloads.openwrt.org/snapshots/targets/x86/64/"
+          else
+            TARGET_URL="https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/"
+          fi
+
+          echo "TARGET_URL=$TARGET_URL"
+          echo "TARGET_URL=$TARGET_URL" >> $GITHUB_ENV
