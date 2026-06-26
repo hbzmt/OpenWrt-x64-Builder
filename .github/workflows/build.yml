@@ -46,17 +46,17 @@ jobs:
 
       - name: Get ImageBuilder Filename
         run: |
-          HTML=$(curl -sL "$TARGET_PATH")
+          VERSION="${{ github.event.inputs.firmware_version }}"
 
-          FILE=$(echo "$HTML" | grep -oE 'openwrt-imagebuilder-[^"]*x86-64[^"]*\.tar\.xz' | head -n 1)
+          TARGET_PATH="https://downloads.openwrt.org/releases/${VERSION}/targets/x86/64/"
 
-          if [ -z "$FILE" ]; then
-            echo "ERROR: ImageBuilder not found in directory!"
-            exit 1
-          fi
+          FILE="openwrt-imagebuilder-${VERSION}-x86-64.Linux-x86_64.tar.xz"
 
-          echo "ImageBuilder file: $FILE"
+          echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
           echo "FILE=$FILE" >> $GITHUB_ENV
+
+          echo "Target path: $TARGET_PATH"
+          echo "ImageBuilder file: $FILE"
 
       - name: Download ImageBuilder
         run: |
