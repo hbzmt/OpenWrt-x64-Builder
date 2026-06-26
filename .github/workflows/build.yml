@@ -45,22 +45,32 @@ jobs:
           echo "TARGET_URL=$TARGET_URL"
           echo "TARGET_URL=$TARGET_URL" >> $GITHUB_ENV
 
+      - name: Get ImageBuilder Filename
+        run: |
+          VERSION="${{ github.event.inputs.firmware_version }}"
+
+          BASE_URL="https://downloads.openwrt.org"
+
+          if [ "$VERSION" = "SNAPSHOT" ]; then
+            TARGET_PATH="$BASE_URL/snapshots/targets/x86/64/"
+          else
+            TARGET_PATH="$BASE_URL/releases/$VERSION/targets/x86/64/"
+          fi
+
+          echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
+
+          echo "Fetching directory listing..."
+
+          FILE=$(curl -s $TARGET_PATH | grep -oP 'openwrt-imagebuilder.*x86-64.*\.tar\.xz' | head -n 1)
+
+          echo "ImageBuilder file: $FILE"
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
       - name: Download ImageBuilder
         run: |
-          echo "Downloading from: $TARGET_URL"
+          echo "Downloading: $TARGET_PATH$FILE"
 
           mkdir -p openwrt
           cd openwrt
 
-          wget $TARGET_URL -O imagebuilder.tar.xz
-
-          echo "Download complete"
-          ls -lh
-
-      - name: Extract ImageBuilder
-        run: |
-          cd openwrt
-          tar -xf imagebuilder.tar.xz
-
-          echo "Extract done"
-          ls
+          wget "$TARGET_PATH$FILE" -O imagebuilder.tar.xz
