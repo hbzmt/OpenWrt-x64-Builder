@@ -48,33 +48,24 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
 
-          BASE="https://downloads.openwrt.org"
-
-          if [ "$VERSION" = "SNAPSHOT" ]; then
-            TARGET_PATH="$BASE/snapshots/targets/x86/64/"
-          else
-            TARGET_PATH="$BASE/releases/$VERSION/targets/x86/64/"
-          fi
-
+          TARGET_PATH="https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/"
           echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
 
-          echo "Fetching real ImageBuilder link..."
+          echo "Fetching directory..."
 
           HTML=$(curl -sL "$TARGET_PATH")
 
-          FILE=$(echo "$HTML" | grep -oE 'href="[^"]*imagebuilder[^"]*x86-64[^"]*\.tar\.xz"' \
-                | head -n 1 \
-                | sed 's/href="//' \
-                | sed 's/"//')
+          FILE=$(echo "$HTML" \
+            | grep -oE 'openwrt-imagebuilder-[0-9a-zA-Z\.\-]+-x86-64[^"]*\.tar\.zst' \
+            | head -n 1)
 
           if [ -z "$FILE" ]; then
-            echo "ERROR: ImageBuilder not found in directory"
+            echo "ERROR: ImageBuilder not found"
             exit 1
           fi
 
+          echo "FILE=$FILE"
           echo "FILE=$FILE" >> $GITHUB_ENV
-
-          echo "ImageBuilder found: $FILE"
 
       - name: Download ImageBuilder
         run: |
@@ -83,12 +74,12 @@ jobs:
           mkdir -p openwrt
           cd openwrt
 
-          wget "$TARGET_PATH$FILE" -O imagebuilder.tar.xz
+          wget "$TARGET_PATH$FILE" -O imagebuilder.tar.zst
 
       - name: Extract ImageBuilder
         run: |
           cd openwrt
-          tar -xf imagebuilder.tar.xz
+          tar --use-compress-program=unzstd -xf imagebuilder.tar.zst
 
           echo "Extract done"
-          ls -lah
+          ls
