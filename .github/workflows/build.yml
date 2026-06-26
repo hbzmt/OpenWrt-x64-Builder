@@ -100,7 +100,8 @@ jobs:
           make image \
             PROFILE="generic" \
             ROOTFS_PARTSIZE=$ROOTFS_SIZE \
-            PACKAGES=""
+            PACKAGES="luci luci-ssl luci-i18n-base-zh-cn"
+            FILES="files"
 
           echo "Build finished"
 
