@@ -3,17 +3,34 @@ name: OpenWrt x86-64 Builder
 on:
   workflow_dispatch:
     inputs:
+
+      # =========================
+      # 🔧 基础版本选择
+      # =========================
       firmware_version:
-        description: "OpenWrt Version (e.g. 25.12.0 / 24.10.3 / SNAPSHOT)"
+        description: "OpenWrt Version"
         required: true
-        default: "25.12.0"
+        default: "25.12.4"
 
       rootfs_size:
         description: "RootFS Size (MB)"
         required: true
         default: "2048"
 
-# ⭐ 修复 release 403 必须加
+      # =========================
+      # 🌐 新增：网络参数（你这次升级的核心）
+      # =========================
+      lan_ip:
+        description: "LAN IP (e.g. 10.0.0.99)"
+        required: true
+        default: "10.0.0.99"
+
+      gateway:
+        description: "Gateway (e.g. 10.0.0.2)"
+        required: true
+        default: "10.0.0.1"
+
+# ⭐ GitHub Release 权限（避免 403）
 permissions:
   contents: write
 
@@ -22,18 +39,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # =========================
+      # 📥 拉取代码
+      # =========================
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # =========================
+      # 🧾 打印参数（方便调试）
+      # =========================
       - name: Print Build Config
         run: |
           echo "===================================="
-          echo "OpenWrt x86-64 Build Config"
+          echo "OpenWrt Build Config"
           echo "===================================="
-          echo "Firmware Version : ${{ github.event.inputs.firmware_version }}"
-          echo "RootFS Size      : ${{ github.event.inputs.rootfs_size }} MB"
+          echo "Version : ${{ github.event.inputs.firmware_version }}"
+          echo "RootFS  : ${{ github.event.inputs.rootfs_size }}"
+          echo "LAN IP  : ${{ github.event.inputs.lan_ip }}"
+          echo "Gateway : ${{ github.event.inputs.gateway }}"
           echo "===================================="
 
+      # =========================
+      # 🌍 计算下载地址
+      # =========================
       - name: Detect Download URL
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
@@ -47,7 +76,7 @@ jobs:
           echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
 
       # =========================
-      # 获取 ImageBuilder（稳定版）
+      # 📦 获取 ImageBuilder
       # =========================
       - name: Get ImageBuilder Filename
         run: |
@@ -60,41 +89,67 @@ jobs:
             | head -n 1)
 
           if [ -z "$FILE" ]; then
-            echo "ERROR: ImageBuilder not found in directory"
-            echo "$HTML" | head -n 50
+            echo "ERROR: ImageBuilder not found"
             exit 1
           fi
 
           echo "FILE=$FILE"
           echo "FILE=$FILE" >> $GITHUB_ENV
 
+      # =========================
+      # ⬇ 下载 ImageBuilder
+      # =========================
       - name: Download ImageBuilder
         run: |
-          echo "Downloading: $TARGET_PATH$FILE"
-
           mkdir -p openwrt
           cd openwrt
 
           wget "$TARGET_PATH$FILE" -O imagebuilder.tar.zst
 
+      # =========================
+      # 📂 解压
+      # =========================
       - name: Extract ImageBuilder
         run: |
           cd openwrt
           tar --use-compress-program=unzstd -xf imagebuilder.tar.zst
 
-          echo "Extract done"
-          ls -lah
+      # =========================================================
+      # 🧠 ⭐ 核心升级1：动态生成 network（新增！！）
+      # =========================================================
+      - name: Generate network config
+        run: |
+          mkdir -p files/etc/config
 
-      # =========================
-      # 构建固件
-      # =========================
+          cat > files/etc/config/network <<EOF
+config interface 'loopback'
+    option device 'lo'
+    option proto 'static'
+    option ipaddr '127.0.0.1'
+    option netmask '255.0.0.0'
+
+config device
+    option name 'br-lan'
+    option type 'bridge'
+    list ports 'eth0'
+
+config interface 'lan'
+    option device 'br-lan'
+    option proto 'static'
+    option ipaddr '${{ github.event.inputs.lan_ip }}'
+    option netmask '255.255.255.0'
+    option gateway '${{ github.event.inputs.gateway }}'
+    option dns '10.0.0.1'
+    option ip6assign '60'
+EOF
+
+      # =========================================================
+      # 🧠 构建固件
+      # =========================================================
       - name: Build OpenWrt Image
         run: |
           cd openwrt
           cd openwrt-imagebuilder-*
-
-          echo "Copying custom files..."
-          cp -r ../../files .
 
           echo "Building OpenWrt Image..."
 
@@ -108,11 +163,10 @@ jobs:
 
           echo "Build finished"
 
-          echo "=== OUTPUT FILES ==="
           find bin/targets/x86/64 -type f || true
 
       # =========================
-      # 上传 Artifact（修复路径）
+      # 📦 上传 artifact
       # =========================
       - name: Upload Firmware Artifact
         uses: actions/upload-artifact@v4
@@ -121,7 +175,7 @@ jobs:
           path: openwrt/**/bin/targets/x86/64/*
 
       # =========================
-      # 发布 Release
+      # 🚀 发布 Release
       # =========================
       - name: Create Release
         uses: softprops/action-gh-release@v1
