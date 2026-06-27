@@ -1,12 +1,12 @@
-name: OpenWrt x86-64 Builder
+name: OpenWrt x86-64 Builder-modifying
 
 on:
   workflow_dispatch:
     inputs:
       firmware_version:
-        description: "OpenWrt Version (e.g. 25.12.0 / 24.10.3 / SNAPSHOT)"
+        description: "OpenWrt Version (e.g. 25.12.4 / 24.10.x / SNAPSHOT)"
         required: true
-        default: "25.12.0"
+        default: "25.12.4"
 
       rootfs_size:
         description: "RootFS Size (MB)"
@@ -33,6 +33,29 @@ jobs:
           echo "Firmware Version : ${{ github.event.inputs.firmware_version }}"
           echo "RootFS Size      : ${{ github.event.inputs.rootfs_size }} MB"
           echo "===================================="
+
+      - name: Validate OpenWrt Version
+        run: |
+          VERSION="${{ github.event.inputs.firmware_version }}"
+
+          if [ "$VERSION" = "SNAPSHOT" ]; then
+            echo "SNAPSHOT build - skip version check"
+            exit 0
+          fi
+
+          URL="https://downloads.openwrt.org/releases/$VERSION/"
+
+          echo "Checking OpenWrt version: $VERSION"
+          echo "URL: $URL"
+
+          HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ ERROR: Invalid OpenWrt version"
+            exit 1
+          fi
+
+          echo "OK version valid"
 
       - name: Detect Download URL
         run: |
@@ -128,6 +151,8 @@ jobs:
         with:
           tag_name: openwrt-${{ github.event.inputs.firmware_version }}
           name: OpenWrt x86-64 ${{ github.event.inputs.firmware_version }}
-          files: openwrt/**/bin/targets/x86/64/*
+          files: |
+            openwrt/**/bin/targets/x86/64/*generic-ext4-combined-efi.img.gz
+            openwrt/**/bin/targets/x86/64/*generic-squashfs-combined-efi.img.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
