@@ -141,44 +141,44 @@ jobs:
 
           if [ "$MODE" = "dhcp" ]; then
             cat > files/etc/config/network <<'EOF'
-          config interface 'loopback'
-          option device 'lo'
-          option proto 'static'
-          option ipaddr '127.0.0.1'
-          option netmask '255.0.0.0'
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
 
-          config device
-            option name 'br-lan'
-            option type 'bridge'
-            list ports 'eth0'
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'eth0'
 
-          config interface 'lan'
-            option device 'br-lan'
-            option proto 'dhcp'
-            EOF
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'dhcp'
+EOF
 
           else
             cat > files/etc/config/network <<EOF
-            config interface 'loopback'
-            option device 'lo'
-            option proto 'static'
-            option ipaddr '${LAN_IP}'
-            option netmask '255.0.0.0'
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '${LAN_IP}'
+	option netmask '255.0.0.0'
 
-          config device
-            option name 'br-lan'
-            option type 'bridge'
-            list ports 'eth0'
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'eth0'
 
-          config interface 'lan'
-          option device 'br-lan'
-          option proto 'static'
-          option ipaddr '${LAN_IP}'
-          option netmask '255.255.255.0'
-          option gateway '${GATEWAY}'
-          option dns '${DNS}'
-          option ip6assign '60'
-          EOF
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '${LAN_IP}'
+	option netmask '255.255.255.0'
+	option gateway '${GATEWAY}'
+	option dns '${DNS}'
+	option ip6assign '60'
+EOF
           fi
 
           echo "Generated network config:"
@@ -230,5 +230,5 @@ jobs:
           files: |
             openwrt/**/bin/targets/x86/64/*generic-ext4-combined-efi.img.gz
             openwrt/**/bin/targets/x86/64/*generic-squashfs-combined-efi.img.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
