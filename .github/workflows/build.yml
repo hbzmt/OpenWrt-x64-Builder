@@ -100,7 +100,7 @@ jobs:
           make image \
             PROFILE="generic" \
             ROOTFS_PARTSIZE=$ROOTFS_SIZE \
-            PACKAGES="lPACKAGES="luci luci-ssl luci-i18n-base-zh-cn luci-i18n-package-manager-zh-cn""
+            PACKAGES="luci luci-ssl luci-i18n-base-zh-cn luci-i18n-package-manager-zh-cn openssh-sftp-server" \
             FILES="files"
 
           echo "Build finished"
