@@ -7,40 +7,33 @@ on:
         description: "OpenWrt Version (e.g. 25.12.4 / 24.10.x / SNAPSHOT)"
         required: true
         default: "25.12.4"
-
       lan_ip:
         description: "LAN IP (only for static, e.g. 10.0.0.99)"
         required: true
         default: "10.0.0.99"
-
       gateway:
         description: "Gateway (e.g. 10.0.0.2)"
         required: true
         default: "10.0.0.2"
-
       dns:
         description: "DNS (e.g. 10.0.0.7)"
         required: true
         default: "10.0.0.7"
-
       ip_mode:
         description: "IP Mode (static or dhcp)"
         required: true
         default: "static"
-
       rootfs_size:
         description: "RootFS Size (MB)"
         required: true
         default: "2048"
 
-# ⭐ 修复 release 403 必须加
 permissions:
   contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -52,85 +45,55 @@ jobs:
           echo "===================================="
           echo "Firmware Version : ${{ github.event.inputs.firmware_version }}"
           echo "RootFS Size      : ${{ github.event.inputs.rootfs_size }} MB"
+          echo "IP Mode          : ${{ github.event.inputs.ip_mode }}"
           echo "===================================="
 
       - name: Validate OpenWrt Version
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
-
           if [ "$VERSION" = "SNAPSHOT" ]; then
             echo "SNAPSHOT build - skip version check"
             exit 0
           fi
-
           URL="https://downloads.openwrt.org/releases/$VERSION/"
-
           echo "Checking OpenWrt version: $VERSION"
-          echo "URL: $URL"
-
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
-
           if [ "$HTTP_CODE" != "200" ]; then
             echo "❌ ERROR: Invalid OpenWrt version"
             exit 1
           fi
-
-          echo "OK version valid"
+          echo "✅ Version valid"
 
       - name: Detect Download URL
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
-
           if [ "$VERSION" = "SNAPSHOT" ]; then
-            TARGET_PATH="https://downloads.openwrt.org/snapshots/targets/x86/64/"
+            echo "TARGET_PATH=https://downloads.openwrt.org/snapshots/targets/x86/64/" >> $GITHUB_ENV
           else
-            TARGET_PATH="https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/"
+            echo "TARGET_PATH=https://downloads.openwrt.org/releases/$VERSION/targets/x86/64/" >> $GITHUB_ENV
           fi
 
-          echo "TARGET_PATH=$TARGET_PATH" >> $GITHUB_ENV
-
-      # =========================
-      # 获取 ImageBuilder（稳定版）
-      # =========================
       - name: Get ImageBuilder Filename
         run: |
-          echo "Fetching ImageBuilder directory..."
-
           HTML=$(curl -sL "$TARGET_PATH")
-
-          FILE=$(echo "$HTML" \
-            | grep -oE 'openwrt-imagebuilder-[^"]*x86-64[^"]*\.tar\.zst' \
-            | head -n 1)
-
+          FILE=$(echo "$HTML" | grep -oE 'openwrt-imagebuilder-[^"]*x86-64[^"]*\.tar\.zst' | head -n 1)
           if [ -z "$FILE" ]; then
-            echo "ERROR: ImageBuilder not found in directory"
-            echo "$HTML" | head -n 50
+            echo "❌ ERROR: ImageBuilder not found"
+            echo "$HTML" | head -n 30
             exit 1
           fi
-
-          echo "FILE=$FILE"
           echo "FILE=$FILE" >> $GITHUB_ENV
+          echo "✅ Found ImageBuilder: $FILE"
 
-      - name: Download ImageBuilder
+      - name: Download & Extract ImageBuilder
         run: |
-          echo "Downloading: $TARGET_PATH$FILE"
-
           mkdir -p openwrt
           cd openwrt
-
-          wget "$TARGET_PATH$FILE" -O imagebuilder.tar.zst
-
-      - name: Extract ImageBuilder
-        run: |
-          cd openwrt
+          wget -q --show-progress "$TARGET_PATH$FILE" -O imagebuilder.tar.zst
           tar --use-compress-program=unzstd -xf imagebuilder.tar.zst
-
-          echo "Extract done"
           ls -lah
 
-      # =========================
-      # 🌐 IP UI（DHCP / Static）
-      # =========================
+      # ====================== IP 配置 ======================
       - name: Generate network config (IP UI)
         run: |
           mkdir -p files/etc/config
@@ -140,38 +103,40 @@ jobs:
           GATEWAY="${{ github.event.inputs.gateway }}"
           DNS="${{ github.event.inputs.dns }}"
 
-          cp files/etc/config/network.tpl files/etc/config/network
+          # 复制模板
+          cp files/etc/config/network.tpl files/etc/config/network || {
+            echo "❌ network.tpl not found! Please make sure it exists in repository."
+            exit 1
+          }
 
-		  if [ "$MODE" = "dhcp" ]; then
-			sed -i 's/__PROTO__/dhcp/' files/etc/config/network
-    		sed -i '/__IP__/d' files/etc/config/network
- 		    sed -i '/__GW__/d' files/etc/config/network
-			sed -i '/__DNS__/d' files/etc/config/network
-  		  else
-		    sed -i 's/__PROTO__/static/' files/etc/config/network
-  		    sed -i 's/__IP__/'"$LAN_IP"'/' files/etc/config/network
-      		sed -i 's/__GW__/'"$GATEWAY"'/' files/etc/config/network
-      		sed -i 's/__DNS__/'"$DNS"'/' files/etc/config/network
-		  fi
+          if [ "$MODE" = "dhcp" ]; then
+            echo "Configuring DHCP mode..."
+            sed -i 's/__PROTO__/dhcp/' files/etc/config/network
+            sed -i '/__IP__/d' files/etc/config/network
+            sed -i '/__GW__/d' files/etc/config/network
+            sed -i '/__DNS__/d' files/etc/config/network
+          else
+            echo "Configuring Static IP mode..."
+            sed -i 's/__PROTO__/static/' files/etc/config/network
+            sed -i "s/__IP__/$LAN_IP/" files/etc/config/network
+            sed -i "s/__GW__/$GATEWAY/" files/etc/config/network
+            sed -i "s/__DNS__/$DNS/" files/etc/config/network
+          fi
 
-  		  echo "=== FINAL NETWORK ==="
-  		  cat files/etc/config/network
-  
-      # =========================
-      # 构建固件
-      # =========================
+          echo "=== FINAL NETWORK CONFIG ==="
+          cat files/etc/config/network
+          echo "============================"
+
+      # ====================== 构建固件 ======================
       - name: Build OpenWrt Image
         run: |
-          cd openwrt
-          cd openwrt-imagebuilder-*
-
+          cd openwrt/openwrt-imagebuilder-*
           echo "Copying custom files..."
-          cp -r ../../files .
-
-          echo "Building OpenWrt Image..."
+          cp -r ../../files . 2>/dev/null || echo "No custom files directory found (optional)"
 
           ROOTFS_SIZE="${{ github.event.inputs.rootfs_size }}"
 
+          echo "Starting build with ROOTFS_PARTSIZE=$ROOTFS_SIZE ..."
           make image \
             PROFILE="generic" \
             ROOTFS_PARTSIZE=$ROOTFS_SIZE \
@@ -179,29 +144,22 @@ jobs:
             FILES="files"
 
           echo "Build finished"
+          ls -lh bin/targets/x86/64/
 
-          echo "=== OUTPUT FILES ==="
-          find bin/targets/x86/64 -type f || true
-
-      # =========================
-      # 上传 Artifact（修复路径）
-      # =========================
       - name: Upload Firmware Artifact
         uses: actions/upload-artifact@v4
         with:
           name: openwrt-x86-64-firmware
-          path: openwrt/**/bin/targets/x86/64/*
+          path: openwrt/openwrt-imagebuilder-*/bin/targets/x86/64/*
+          retention-days: 30
 
-      # =========================
-      # 发布 Release
-      # =========================
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: openwrt-${{ github.event.inputs.firmware_version }}
           name: OpenWrt x86-64 ${{ github.event.inputs.firmware_version }}
           files: |
-            openwrt/**/bin/targets/x86/64/*generic-ext4-combined-efi.img.gz
-            openwrt/**/bin/targets/x86/64/*generic-squashfs-combined-efi.img.gz
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            openwrt/openwrt-imagebuilder-*/bin/targets/x86/64/*generic-ext4-combined-efi.img.gz
+            openwrt/openwrt-imagebuilder-*/bin/targets/x86/64/*generic-squashfs-combined-efi.img.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
