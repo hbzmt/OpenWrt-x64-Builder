@@ -8,6 +8,26 @@ on:
         required: true
         default: "25.12.4"
 
+      lan_ip:
+        description: "LAN IP (only for static, e.g. 10.0.0.99)"
+        required: true
+        default: "10.0.0.99"
+
+      gateway:
+        description: "Gateway (e.g. 10.0.0.2)"
+        required: true
+        default: "10.0.0.2"
+
+      dns:
+        description: "DNS (e.g. 10.0.0.7)"
+        required: true
+        default: "10.0.0.7"
+
+      ip_mode:
+        description: "IP Mode (static or dhcp)"
+        required: true
+        default: "static"
+
       rootfs_size:
         description: "RootFS Size (MB)"
         required: true
@@ -107,6 +127,65 @@ jobs:
 
           echo "Extract done"
           ls -lah
+
+      - name: Generate network config (static/dhcp support)
+        run: |
+          mkdir -p files/etc/config
+
+          MODE="${{ github.event.inputs.ip_mode }}"
+          LAN_IP="${{ github.event.inputs.lan_ip }}"
+          GATEWAY="${{ github.event.inputs.gateway }}"
+          DNS="${{ github.event.inputs.dns }}"
+
+          echo "IP MODE: $MODE"
+
+          if [ "$MODE" = "dhcp" ]; then
+
+          cat > files/etc/config/network <<EOF
+          config interface 'loopback'
+          option device 'lo'
+          option proto 'static'
+          option ipaddr '127.0.0.1'
+          option netmask '255.0.0.0'
+
+          config device
+          option name 'br-lan'
+          option type 'bridge'
+          list ports 'eth0'
+
+          config interface 'lan'
+          option device 'br-lan'
+          option proto 'dhcp'
+          EOF
+
+          else
+
+          cat > files/etc/config/network <<EOF
+          config interface 'loopback'
+          option device 'lo'
+          option proto 'static'
+          option ipaddr '127.0.0.1'
+          option netmask '255.0.0.0'
+
+          config device
+          option name 'br-lan'
+          option type 'bridge'
+          list ports 'eth0'
+
+          config interface 'lan'
+          option device 'br-lan'
+          option proto 'static'
+          option ipaddr '${LAN_IP}'
+          option netmask '255.255.255.0'
+          option gateway '${GATEWAY}'
+          option dns '${DNS}'
+          option ip6assign '60'
+          EOF
+
+          fi
+
+          echo "Generated network config:"
+          cat files/etc/config/network
 
       # =========================
       # 构建固件
