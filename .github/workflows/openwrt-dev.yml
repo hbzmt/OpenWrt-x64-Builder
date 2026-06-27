@@ -1,4 +1,4 @@
-name: OpenWrt x86-64 Builder
+name: OpenWrt x86-64 Builder-modifying
 
 on:
   workflow_dispatch:
@@ -151,6 +151,8 @@ jobs:
         with:
           tag_name: openwrt-${{ github.event.inputs.firmware_version }}
           name: OpenWrt x86-64 ${{ github.event.inputs.firmware_version }}
-          files: openwrt/**/bin/targets/x86/64/*
+          files: |
+            openwrt/**/bin/targets/x86/64/*generic-ext4-combined-efi.img.gz
+            openwrt/**/bin/targets/x86/64/*generic-squashfs-combined-efi.img.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
