@@ -109,6 +109,56 @@ jobs:
           ls -lah
 
       # =========================
+      # 🌐 IP UI（DHCP / Static）
+      # =========================
+      - name: Generate network config (IP UI)
+        run: |
+          mkdir -p files/etc/config
+
+          MODE="${{ github.event.inputs.ip_mode }}"
+          LAN_IP="${{ github.event.inputs.lan_ip }}"
+          GATEWAY="${{ github.event.inputs.gate way }}"
+          DNS="${{ github.event.inputs.dns }}"
+
+          echo "IP MODE: $MODE"
+
+          cat > files/etc/config/network <<EOF
+          config interface 'loopback'
+          option device 'lo'
+          option proto 'static'
+          option ipaddr '127.0.0.1'
+          option netmask '255.0.0.0'
+
+          config globals 'globals'
+
+          config device
+          option name 'br-lan'
+          option type 'bridge'
+          list ports 'eth0'
+
+          config interface 'lan'
+          option device 'br-lan'
+          EOF
+
+          if [ "$MODE" = "dhcp" ]; then
+          cat >> files/etc/config/network <<EOF
+          option proto 'dhcp'
+          EOF
+          else
+            cat >> files/etc/config/network <<EOF
+          option proto 'static'
+          option ipaddr '${LAN_IP}'
+          option netmask '255.255.255.0'
+          option gateway '${GATEWAY}'
+          option dns '${DNS}'
+          option ip6assign '60'
+          EOF
+          fi
+
+          echo "Generated network config:"
+          cat files/etc/config/network
+    
+      # =========================
       # 构建固件
       # =========================
       - name: Build OpenWrt Image
