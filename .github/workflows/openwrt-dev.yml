@@ -133,22 +133,20 @@ jobs:
           cd openwrt/openwrt-imagebuilder-*
 
           echo "Copying custom files..."
-          cp -r ../../files . 2>/dev/null || true
-
-          # load custom packages
-          if [ -f ../../shell/custom-packages.sh ]; then
-            source ../../shell/custom-packages.sh
-          else
-            echo "no custom-packages.sh found"
-          fi
-
-          echo "CUSTOM_PACKAGES=$CUSTOM_PACKAGES"
-
-          if [ -z "$CUSTOM_PACKAGES" ]; then
-            CUSTOM_PACKAGES="luci luci-ssl luci-i18n-base-zh-cn luci-i18n-package-manager-zh-cn openssh-sftp-server"
-          fi
+          cp -r ../../files . 2>/dev/null || echo "No custom files directory found (optional)"
 
           ROOTFS_SIZE="${{ github.event.inputs.rootfs_size }}"
+
+          # =========================
+          # 引入插件列表
+          # =========================
+          source ../../shell/custom-packages.sh
+
+          echo "========================"
+          echo "CUSTOM_PACKAGES=$CUSTOM_PACKAGES"
+          echo "========================"
+
+          echo "Starting build with ROOTFS_PARTSIZE=$ROOTFS_SIZE ..."
 
           make image \
             PROFILE="generic" \
