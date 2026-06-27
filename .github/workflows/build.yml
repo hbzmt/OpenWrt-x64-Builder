@@ -5,7 +5,7 @@ on:
     inputs:
 
       # =========================
-      # 🔧 基础版本选择
+      # 🔧 基础版本
       # =========================
       firmware_version:
         description: "OpenWrt Version"
@@ -18,7 +18,7 @@ on:
         default: "2048"
 
       # =========================
-      # 🌐 新增：网络参数（你这次升级的核心）
+      # 🌐 网络参数（Run 时可配置）
       # =========================
       lan_ip:
         description: "LAN IP (e.g. 10.0.0.99)"
@@ -26,11 +26,11 @@ on:
         default: "10.0.0.99"
 
       gateway:
-        description: "Gateway (e.g. 10.0.0.2)"
+        description: "Gateway (e.g. 10.0.0.1 or 10.0.0.2)"
         required: true
         default: "10.0.0.1"
 
-# ⭐ GitHub Release 权限（避免 403）
+# ⭐ Release 权限
 permissions:
   contents: write
 
@@ -41,13 +41,13 @@ jobs:
     steps:
 
       # =========================
-      # 📥 拉取代码
+      # 📥 Checkout
       # =========================
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       # =========================
-      # 🧾 打印参数（方便调试）
+      # 🧾 打印参数
       # =========================
       - name: Print Build Config
         run: |
@@ -58,10 +58,11 @@ jobs:
           echo "RootFS  : ${{ github.event.inputs.rootfs_size }}"
           echo "LAN IP  : ${{ github.event.inputs.lan_ip }}"
           echo "Gateway : ${{ github.event.inputs.gateway }}"
+          echo "DNS     : 10.0.0.7 (AdGuardHome)"
           echo "===================================="
 
       # =========================
-      # 🌍 计算下载地址
+      # 🌍 下载地址
       # =========================
       - name: Detect Download URL
         run: |
@@ -97,13 +98,12 @@ jobs:
           echo "FILE=$FILE" >> $GITHUB_ENV
 
       # =========================
-      # ⬇ 下载 ImageBuilder
+      # ⬇ 下载
       # =========================
       - name: Download ImageBuilder
         run: |
           mkdir -p openwrt
           cd openwrt
-
           wget "$TARGET_PATH$FILE" -O imagebuilder.tar.zst
 
       # =========================
@@ -115,7 +115,7 @@ jobs:
           tar --use-compress-program=unzstd -xf imagebuilder.tar.zst
 
       # =========================================================
-      # 🧠 ⭐ 核心升级1：动态生成 network（新增！！）
+      # 🧠 动态生成 network（已升级 DNS = AdGuardHome）
       # =========================================================
       - name: Generate network config
         run: |
@@ -139,13 +139,13 @@ config interface 'lan'
     option ipaddr '${{ github.event.inputs.lan_ip }}'
     option netmask '255.255.255.0'
     option gateway '${{ github.event.inputs.gateway }}'
-    option dns '10.0.0.1'
+    option dns '10.0.0.7'
     option ip6assign '60'
 EOF
 
-      # =========================================================
-      # 🧠 构建固件
-      # =========================================================
+      # =========================
+      # 🧠 Build 固件
+      # =========================
       - name: Build OpenWrt Image
         run: |
           cd openwrt
@@ -166,7 +166,7 @@ EOF
           find bin/targets/x86/64 -type f || true
 
       # =========================
-      # 📦 上传 artifact
+      # 📦 Artifact
       # =========================
       - name: Upload Firmware Artifact
         uses: actions/upload-artifact@v4
@@ -175,7 +175,7 @@ EOF
           path: openwrt/**/bin/targets/x86/64/*
 
       # =========================
-      # 🚀 发布 Release
+      # 🚀 Release
       # =========================
       - name: Create Release
         uses: softprops/action-gh-release@v1
