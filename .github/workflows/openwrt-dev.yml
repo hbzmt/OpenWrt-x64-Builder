@@ -34,7 +34,6 @@ jobs:
           echo "RootFS Size      : ${{ github.event.inputs.rootfs_size }} MB"
           echo "===================================="
 
-      - name: Detect Download URL
       - name: Validate OpenWrt Version
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
