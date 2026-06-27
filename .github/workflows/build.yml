@@ -91,7 +91,7 @@ jobs:
       - name: Build OpenWrt Image
         run: |
           cd openwrt
-          cd $(ls -d openwrt-imagebuilder*)
+          cd openwrt-imagebuilder-*
 
           echo "Building OpenWrt Image..."
 
