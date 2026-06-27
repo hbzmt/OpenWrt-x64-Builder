@@ -51,12 +51,13 @@ jobs:
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
 
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "❌ ERROR: Invalid OpenWrt version: $VERSION"
-            echo "URL not found: $URL"
+            echo "❌ ERROR: Invalid OpenWrt version"
             exit 1
           fi
 
-          echo "✅ OpenWrt version valid: $VERSION"
+          echo "OK version valid"
+
+      - name: Detect Download URL
         run: |
           VERSION="${{ github.event.inputs.firmware_version }}"
 
