@@ -10,15 +10,15 @@ on:
       lan_ip:
         description: "LAN IP (only for static, e.g. 10.0.0.99)"
         required: true
-        default: "10.0.2.99"
+        default: "10.0.0.99"
       gateway:
         description: "Gateway (e.g. 10.0.0.2)"
         required: true
-        default: "10.0.2.2"
+        default: "10.0.0.2"
       dns:
         description: "DNS (e.g. 10.0.0.7)"
         required: true
-        default: "10.0.2.2"
+        default: "10.0.0.7"
       ip_mode:
         description: "IP Mode (static or dhcp)"
         required: true
