@@ -12,10 +12,10 @@ config device
 config interface 'lan'
     option device 'br-lan'
     option proto 'static'
-    option ipaddr '10.0.0.99'
+    option ipaddr '10.0.2.99'
     option netmask '255.255.255.0'
-    option gateway '10.0.0.2'
-    option dns '10.0.0.7'
+    option gateway '10.0.2.2'
+    option dns '10.0.2.2'
     option ip6assign '60'
 
 config interface 'ipv6' 
