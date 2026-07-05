@@ -21,7 +21,8 @@ openssh-sftp-server"
 CUSTOM_PACKAGES="$CUSTOM_PACKAGES \
 ttyd \
 luci-app-ttyd \
-luci-i18n-ttyd-zh-cn"
+luci-i18n-ttyd-zh-cn \
+snmpd-nossl"
 
 ############################
 # 网络工具
