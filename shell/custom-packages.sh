@@ -46,6 +46,8 @@ kmod-nft-tproxy \
 bash \
 curl \
 ip-full \
+kmod-nft-queue \
+kmod-veth \
 unzip"
 
 echo "$CUSTOM_PACKAGES"
