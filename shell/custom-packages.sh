@@ -31,6 +31,7 @@ snmpd-nossl"
 # CUSTOM_PACKAGES="$CUSTOM_PACKAGES \
 # luci-app-nlbwmon \
 # luci-i18n-nlbwmon-zh-cn"
+curl"
 
 ############################
 # OpenClash
