@@ -31,21 +31,21 @@ snmpd-nossl"
 # CUSTOM_PACKAGES="$CUSTOM_PACKAGES \
 # luci-app-nlbwmon \
 # luci-i18n-nlbwmon-zh-cn"
-curl"
+# curl"
 
 ############################
 # OpenClash
 ############################
 
-# CUSTOM_PACKAGES="$CUSTOM_PACKAGES \
-# luci-app-openclash \
-# luci-compat \
-# kmod-tun \
-# kmod-inet-diag \
-# kmod-nft-tproxy \
-# bash \
-# curl \
-# ip-full \
-# unzip"
+CUSTOM_PACKAGES="$CUSTOM_PACKAGES \
+luci-app-openclash \
+luci-compat \
+kmod-tun \
+kmod-inet-diag \
+kmod-nft-tproxy \
+bash \
+curl \
+ip-full \
+unzip"
 
 echo "$CUSTOM_PACKAGES"
